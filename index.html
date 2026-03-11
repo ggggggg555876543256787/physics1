@@ -2,92 +2,99 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>Physics Lab Pro — PC Version</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Physics Sandbox Pro — Stable Edition</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
     <style>
-        body { margin: 0; overflow: hidden; background: #0c0c0e; font-family: 'Inter', 'Segoe UI', sans-serif; }
-        
-        /* Главное меню */
+        body { 
+            margin: 0; 
+            padding: 0; 
+            overflow: hidden; 
+            background: #0f0f12; 
+            font-family: 'Segoe UI', Roboto, sans-serif;
+        }
+
+        /* Контейнер для интерфейса */
         #ui {
-            position: absolute; left: 20px; top: 20px; width: 260px; 
-            background: rgba(23, 23, 28, 0.95); color: #e0e0e0; 
-            border-radius: 12px; z-index: 1000; border: 1px solid #3a3a42;
-            box-shadow: 0 15px 50px rgba(0,0,0,0.8); backdrop-filter: blur(15px);
+            position: absolute; 
+            left: 20px; 
+            top: 20px; 
+            width: 240px; 
+            background: rgba(25, 25, 30, 0.95); 
+            color: #fff; 
+            border-radius: 12px; 
+            z-index: 9999; /* Очень высокий приоритет, чтобы кнопки работали */
+            border: 1px solid #444;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            pointer-events: all; /* Разрешаем взаимодействие */
         }
 
         #ui-header {
-            padding: 14px; background: #1f1f27; cursor: move;
-            text-align: center; font-weight: bold; border-radius: 12px 12px 0 0;
-            border-bottom: 1px solid #3a3a42; font-size: 13px; color: #00a2ff;
-            text-transform: uppercase; letter-spacing: 1.5px;
+            padding: 12px; 
+            background: #007bff; 
+            cursor: move; 
+            text-align: center; 
+            font-weight: bold; 
+            border-radius: 12px 12px 0 0;
+            user-select: none;
         }
 
-        .ui-content { padding: 18px; display: flex; flex-direction: column; gap: 14px; }
+        .ui-content { padding: 15px; display: flex; flex-direction: column; gap: 10px; }
         
-        section { display: flex; flex-direction: column; gap: 6px; }
-        label { font-size: 10px; color: #777; text-transform: uppercase; font-weight: 700; }
+        label { font-size: 11px; color: #aaa; text-transform: uppercase; }
 
         select, input, button { 
-            padding: 10px; border-radius: 6px; border: 1px solid #333; 
-            background: #121216; color: white; font-size: 14px; outline: none;
+            padding: 10px; 
+            border-radius: 6px; 
+            border: none; 
+            background: #2a2a30; 
+            color: white; 
+            font-size: 14px;
+            width: 100%;
+            box-sizing: border-box;
         }
 
         button { 
-            background: #007bff; border: none; font-weight: bold; cursor: pointer; 
-            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            background: #28a745; 
+            font-weight: bold; 
+            cursor: pointer; 
+            transition: 0.2s;
         }
-        button:hover { background: #005ecb; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,123,255,0.3); }
-        button:active { transform: translateY(0); }
+        button:hover { background: #218838; }
+        button:active { transform: scale(0.95); }
         
-        .btn-water { background: #00d4ff; color: #002233; }
-        .btn-water:hover { background: #33e0ff; }
-        .btn-clear { background: #eb3b5a; }
-        .btn-clear:hover { background: #ff4757; }
+        .btn-water { background: #00d4ff; color: #000; }
+        .btn-clear { background: #dc3545; }
 
-        .hotkeys-panel {
-            margin-top: 10px; padding: 10px; background: rgba(0,0,0,0.3);
-            border-radius: 6px; font-size: 11px; color: #555; line-height: 1.6;
-        }
-        b { color: #aaa; }
+        .hotkeys { font-size: 10px; color: #666; text-align: center; margin-top: 5px; }
     </style>
 </head>
 <body>
 
 <div id="ui">
-    <div id="ui-header">PHYSICS ENGINE v3.0</div>
+    <div id="ui-header">ИНСТРУМЕНТЫ</div>
     <div class="ui-content">
+        <label>Материал</label>
+        <select id="material">
+            <option value="wood">Дерево</option>
+            <option value="metal">Металл</option>
+            <option value="rubber">Резина</option>
+            <option value="acid">Кислота ☣️</option>
+        </select>
         
-        <section>
-            <label>Материал</label>
-            <select id="material">
-                <option value="wood">Дерево (Баланс)</option>
-                <option value="metal">Металл (Тяжесть)</option>
-                <option value="rubber">Резина (Прыжки)</option>
-                <option value="acid">Кислота (Хаос) ☣️</option>
-            </select>
-        </section>
-
-        <section>
-            <label>Масштаб объекта</label>
-            <input type="range" id="size" min="15" max="150" value="40">
-        </section>
+        <label>Размер</label>
+        <input type="range" id="size" min="10" max="100" value="30">
         
-        <button onclick="spawn()">СОЗДАТЬ ОБЪЕКТ [Space]</button>
-        <button class="btn-water" id="waterBtn" onmousedown="startWater()" onmouseup="stopWater()" onmouseleave="stopWater()">
-            ПОТОК ВОДЫ [W]
-        </button>
-        <button class="btn-clear" onclick="clearAll()">ОЧИСТИТЬ ВСЁ [R]</button>
-
-        <div class="hotkeys-panel">
-            <b>Space:</b> Спавн предмета<br>
-            <b>W:</b> (удерживать) Поток воды<br>
-            <b>R:</b> Мгновенная очистка<br>
-            <b>Mouse Drag:</b> Хватать предметы
-        </div>
+        <button id="spawnBtn">СОЗДАТЬ ОБЪЕКТ</button>
+        <button class="btn-water" id="waterBtn">ПОТОК ВОДЫ (W)</button>
+        <button class="btn-clear" id="clearBtn">ОЧИСТИТЬ (R)</button>
+        
+        <div class="hotkeys">Тяни объекты мышкой</div>
     </div>
 </div>
 
 <script>
+    // Инициализация Matter.js
     const { Engine, Render, Runner, Bodies, Composite, MouseConstraint, Mouse, Events } = Matter;
 
     const engine = Engine.create();
@@ -100,26 +107,144 @@
             width: window.innerWidth, 
             height: window.innerHeight, 
             wireframes: false, 
-            background: 'transparent',
-            pixelRatio: window.devicePixelRatio
+            background: 'transparent' 
         }
     });
 
-    // Отрисовка границ комнаты (стены)
+    // Создание границ
     let walls = [];
-    function buildBox() {
+    function buildRoom() {
         if (walls.length) Composite.remove(world, walls);
         const t = 100, w = window.innerWidth, h = window.innerHeight;
         walls = [
-            Bodies.rectangle(w/2, h+t/2, w, t, { isStatic: true, friction: 0.8, label: 'wall' }),
+            Bodies.rectangle(w/2, h + t/2, w, t, { isStatic: true, label: 'wall', friction: 1 }),
             Bodies.rectangle(w/2, -t/2, w, t, { isStatic: true, label: 'wall' }),
             Bodies.rectangle(-t/2, h/2, t, h, { isStatic: true, label: 'wall' }),
-            Bodies.rectangle(w+t/2, h/2, t, h, { isStatic: true, label: 'wall' })
+            Bodies.rectangle(w + t/2, h/2, t, h, { isStatic: true, label: 'wall' })
         ];
         Composite.add(world, walls);
     }
-    buildBox();
+    buildRoom();
 
-    // Мышь для управления предметами
+    // Мышь
     const mouse = Mouse.create(render.canvas);
     const mouseConstraint = MouseConstraint.create(engine, {
+        mouse: mouse,
+        constraint: { stiffness: 0.2, render: { visible: false } }
+    });
+    Composite.add(world, mouseConstraint);
+    render.mouse = mouse; // Синхронизация для корректного захвата
+
+    let shapes = [];
+    const MAX_BODIES = 600;
+
+    function createObj(x, y, radius, type) {
+        let opt = { label: type };
+        let col = '#e67e22';
+
+        if (type === 'wood') {
+            opt.density = 0.005; opt.restitution = 0.4; col = '#855e42';
+        } else if (type === 'metal') {
+            opt.density = 0.5; opt.restitution = 0.05; col = '#7f8c8d';
+        } else if (type === 'rubber') {
+            opt.density = 0.002; opt.restitution = 1.1; col = '#ff006e';
+        } else if (type === 'acid') {
+            opt.density = 0.01; col = '#2ecc71';
+        } else if (type === 'water') {
+            opt.density = 0.002; opt.friction = 0; opt.restitution = 0.1; col = '#3498db';
+        }
+
+        const b = Bodies.circle(x, y, radius, {
+            ...opt,
+            render: { 
+                fillStyle: col, 
+                strokeStyle: type === 'water' ? 'transparent' : '#fff', 
+                lineWidth: type === 'metal' ? 5 : 1 
+            }
+        });
+
+        Composite.add(world, b);
+        shapes.push(b);
+        if (shapes.length > MAX_BODIES) {
+            const old = shapes.shift();
+            Composite.remove(world, old);
+        }
+    }
+
+    // Слушатели кнопок (Исправлено!)
+    document.getElementById('spawnBtn').addEventListener('click', (e) => {
+        e.stopPropagation();
+        const mat = document.getElementById('material').value;
+        const size = parseInt(document.getElementById('size').value);
+        createObj(window.innerWidth/2, 100, size, mat);
+    });
+
+    document.getElementById('clearBtn').addEventListener('click', (e) => {
+        e.stopPropagation();
+        shapes.forEach(s => Composite.remove(world, s));
+        shapes = [];
+    });
+
+    let waterActive = false;
+    const waterBtn = document.getElementById('waterBtn');
+    waterBtn.addEventListener('mousedown', () => waterActive = true);
+    window.addEventListener('mouseup', () => waterActive = false);
+
+    // Клавиатура
+    window.addEventListener('keydown', (e) => {
+        if (e.code === 'Space') createObj(window.innerWidth/2, 100, 30, document.getElementById('material').value);
+        if (e.code === 'KeyR') document.getElementById('clearBtn').click();
+        if (e.code === 'KeyW') waterActive = true;
+    });
+    window.addEventListener('keyup', (e) => { if (e.code === 'KeyW') waterActive = false; });
+
+    Events.on(engine, 'beforeUpdate', () => {
+        if (waterActive) {
+            for(let i=0; i<3; i++) createObj(window.innerWidth/2 + (Math.random()*60-30), 40, 6, 'water');
+        }
+    });
+
+    // Реакция кислоты
+    Events.on(engine, 'collisionStart', (e) => {
+        e.pairs.forEach(p => {
+            const { bodyA, bodyB } = p;
+            if (bodyA.label === 'acid' && !['wall', 'acid', 'water'].includes(bodyB.label)) {
+                Composite.remove(world, bodyB);
+                shapes = shapes.filter(s => s !== bodyB);
+            }
+            if (bodyB.label === 'acid' && !['wall', 'acid', 'water'].includes(bodyA.label)) {
+                Composite.remove(world, bodyA);
+                shapes = shapes.filter(s => s !== bodyA);
+            }
+        });
+    });
+
+    Render.run(render);
+    Runner.run(Runner.create(), engine);
+
+    // Перемещение меню
+    const ui = document.getElementById("ui");
+    const header = document.getElementById("ui-header");
+    let dragging = false, xOff = 0, yOff = 0;
+
+    header.onmousedown = (e) => {
+        dragging = true;
+        xOff = e.clientX - ui.offsetLeft;
+        yOff = e.clientY - ui.offsetTop;
+    };
+    window.onmousemove = (e) => {
+        if (dragging) {
+            ui.style.left = (e.clientX - xOff) + 'px';
+            ui.style.top = (e.clientY - yOff) + 'px';
+        }
+    };
+    window.onmouseup = () => dragging = false;
+
+    window.onresize = () => {
+        render.canvas.width = window.innerWidth;
+        render.canvas.height = window.innerHeight;
+        buildRoom();
+    };
+</script>
+</body>
+</html>
