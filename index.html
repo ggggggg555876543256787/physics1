@@ -3,98 +3,81 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Physics Sandbox Pro — Stable Edition</title>
+    <title>Physics Sandbox — Pixel Control</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
     <style>
-        body { 
-            margin: 0; 
-            padding: 0; 
-            overflow: hidden; 
-            background: #0f0f12; 
-            font-family: 'Segoe UI', Roboto, sans-serif;
-        }
-
-        /* Контейнер для интерфейса */
+        body { margin: 0; padding: 0; overflow: hidden; background: #0a0a0c; font-family: 'Segoe UI', sans-serif; }
+        
         #ui {
-            position: absolute; 
-            left: 20px; 
-            top: 20px; 
-            width: 240px; 
-            background: rgba(25, 25, 30, 0.95); 
-            color: #fff; 
-            border-radius: 12px; 
-            z-index: 9999; /* Очень высокий приоритет, чтобы кнопки работали */
-            border: 1px solid #444;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-            pointer-events: all; /* Разрешаем взаимодействие */
+            position: absolute; left: 20px; top: 20px; width: 240px; 
+            background: rgba(20, 20, 25, 0.98); color: #fff; 
+            border-radius: 12px; z-index: 9999; border: 1px solid #444;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.8);
         }
 
         #ui-header {
-            padding: 12px; 
-            background: #007bff; 
-            cursor: move; 
-            text-align: center; 
-            font-weight: bold; 
-            border-radius: 12px 12px 0 0;
-            user-select: none;
+            padding: 12px; background: #2c3e50; cursor: move; 
+            text-align: center; font-weight: bold; border-radius: 12px 12px 0 0;
+            user-select: none; border-bottom: 1px solid #444;
         }
 
         .ui-content { padding: 15px; display: flex; flex-direction: column; gap: 10px; }
         
-        label { font-size: 11px; color: #aaa; text-transform: uppercase; }
+        .row { display: flex; flex-direction: column; gap: 4px; }
+        label { font-size: 10px; color: #888; text-transform: uppercase; font-weight: bold; }
+        .val-display { float: right; color: #00d4ff; }
 
         select, input, button { 
-            padding: 10px; 
-            border-radius: 6px; 
-            border: none; 
-            background: #2a2a30; 
-            color: white; 
-            font-size: 14px;
-            width: 100%;
-            box-sizing: border-box;
+            padding: 8px; border-radius: 6px; border: none; 
+            background: #1a1a1f; color: white; font-size: 13px; width: 100%;
         }
 
-        button { 
-            background: #28a745; 
-            font-weight: bold; 
-            cursor: pointer; 
-            transition: 0.2s;
-        }
-        button:hover { background: #218838; }
-        button:active { transform: scale(0.95); }
-        
-        .btn-water { background: #00d4ff; color: #000; }
-        .btn-clear { background: #dc3545; }
+        button { background: #27ae60; font-weight: bold; cursor: pointer; margin-top: 5px; }
+        button:hover { background: #2ecc71; }
+        .btn-water { background: #2980b9; }
+        .btn-clear { background: #c0392b; }
 
-        .hotkeys { font-size: 10px; color: #666; text-align: center; margin-top: 5px; }
+        .counter { 
+            font-size: 11px; color: #555; text-align: center; 
+            padding: 5px; background: #000; border-radius: 4px;
+        }
     </style>
 </head>
 <body>
 
 <div id="ui">
-    <div id="ui-header">ИНСТРУМЕНТЫ</div>
+    <div id="ui-header">НАСТРОЙКИ МИРА</div>
     <div class="ui-content">
-        <label>Материал</label>
-        <select id="material">
-            <option value="wood">Дерево</option>
-            <option value="metal">Металл</option>
-            <option value="rubber">Резина</option>
-            <option value="acid">Кислота ☣️</option>
-        </select>
         
-        <label>Размер</label>
-        <input type="range" id="size" min="10" max="100" value="30">
+        <div class="row">
+            <label>Материал</label>
+            <select id="material">
+                <option value="wood">Дерево</option>
+                <option value="metal">Металл</option>
+                <option value="rubber">Резина</option>
+                <option value="acid">Кислота ☣️</option>
+            </select>
+        </div>
+
+        <div class="row">
+            <label>Размер объекта <span id="sizeVal" class="val-display">30</span></label>
+            <input type="range" id="size" min="10" max="120" value="30" oninput="sizeVal.innerText=this.value">
+        </div>
+
+        <div class="row">
+            <label>Лимит пикселей <span id="limitVal" class="val-display">400</span></label>
+            <input type="range" id="limit" min="10" max="2000" value="400" oninput="limitVal.innerText=this.value">
+        </div>
         
         <button id="spawnBtn">СОЗДАТЬ ОБЪЕКТ</button>
         <button class="btn-water" id="waterBtn">ПОТОК ВОДЫ (W)</button>
         <button class="btn-clear" id="clearBtn">ОЧИСТИТЬ (R)</button>
         
-        <div class="hotkeys">Тяни объекты мышкой</div>
+        <div class="counter">Объектов на экране: <span id="currentCount">0</span></div>
     </div>
 </div>
 
 <script>
-    // Инициализация Matter.js
     const { Engine, Render, Runner, Bodies, Composite, MouseConstraint, Mouse, Events } = Matter;
 
     const engine = Engine.create();
@@ -103,21 +86,16 @@
     const render = Render.create({
         element: document.body,
         engine: engine,
-        options: { 
-            width: window.innerWidth, 
-            height: window.innerHeight, 
-            wireframes: false, 
-            background: 'transparent' 
-        }
+        options: { width: window.innerWidth, height: window.innerHeight, wireframes: false, background: 'transparent' }
     });
 
-    // Создание границ
+    // Стены
     let walls = [];
     function buildRoom() {
         if (walls.length) Composite.remove(world, walls);
         const t = 100, w = window.innerWidth, h = window.innerHeight;
         walls = [
-            Bodies.rectangle(w/2, h + t/2, w, t, { isStatic: true, label: 'wall', friction: 1 }),
+            Bodies.rectangle(w/2, h + t/2, w, t, { isStatic: true, label: 'wall' }),
             Bodies.rectangle(w/2, -t/2, w, t, { isStatic: true, label: 'wall' }),
             Bodies.rectangle(-t/2, h/2, t, h, { isStatic: true, label: 'wall' }),
             Bodies.rectangle(w + t/2, h/2, t, h, { isStatic: true, label: 'wall' })
@@ -126,81 +104,66 @@
     }
     buildRoom();
 
-    // Мышь
-    const mouse = Mouse.create(render.canvas);
     const mouseConstraint = MouseConstraint.create(engine, {
-        mouse: mouse,
+        mouse: Mouse.create(render.canvas),
         constraint: { stiffness: 0.2, render: { visible: false } }
     });
     Composite.add(world, mouseConstraint);
-    render.mouse = mouse; // Синхронизация для корректного захвата
 
     let shapes = [];
-    const MAX_BODIES = 600;
 
     function createObj(x, y, radius, type) {
         let opt = { label: type };
         let col = '#e67e22';
+        const limit = parseInt(document.getElementById('limit').value);
 
-        if (type === 'wood') {
-            opt.density = 0.005; opt.restitution = 0.4; col = '#855e42';
-        } else if (type === 'metal') {
-            opt.density = 0.5; opt.restitution = 0.05; col = '#7f8c8d';
-        } else if (type === 'rubber') {
-            opt.density = 0.002; opt.restitution = 1.1; col = '#ff006e';
-        } else if (type === 'acid') {
-            opt.density = 0.01; col = '#2ecc71';
-        } else if (type === 'water') {
-            opt.density = 0.002; opt.friction = 0; opt.restitution = 0.1; col = '#3498db';
-        }
+        if (type === 'wood') { opt.density = 0.005; col = '#855e42'; }
+        else if (type === 'metal') { opt.density = 0.5; col = '#7f8c8d'; }
+        else if (type === 'rubber') { opt.restitution = 1.1; col = '#ff006e'; }
+        else if (type === 'acid') { col = '#2ecc71'; }
+        else if (type === 'water') { opt.friction = 0; opt.density = 0.002; col = '#3498db'; }
 
         const b = Bodies.circle(x, y, radius, {
             ...opt,
-            render: { 
-                fillStyle: col, 
-                strokeStyle: type === 'water' ? 'transparent' : '#fff', 
-                lineWidth: type === 'metal' ? 5 : 1 
-            }
+            render: { fillStyle: col, strokeStyle: type==='water'?'transparent':'#fff', lineWidth: 1 }
         });
 
         Composite.add(world, b);
         shapes.push(b);
-        if (shapes.length > MAX_BODIES) {
+
+        // Контроль лимита "пикселей"
+        while (shapes.length > limit) {
             const old = shapes.shift();
             Composite.remove(world, old);
         }
+        document.getElementById('currentCount').innerText = shapes.length;
     }
 
-    // Слушатели кнопок (Исправлено!)
-    document.getElementById('spawnBtn').addEventListener('click', (e) => {
-        e.stopPropagation();
-        const mat = document.getElementById('material').value;
-        const size = parseInt(document.getElementById('size').value);
-        createObj(window.innerWidth/2, 100, size, mat);
-    });
+    // События
+    document.getElementById('spawnBtn').onclick = () => {
+        createObj(window.innerWidth/2, 100, parseInt(document.getElementById('size').value), document.getElementById('material').value);
+    };
 
-    document.getElementById('clearBtn').addEventListener('click', (e) => {
-        e.stopPropagation();
+    document.getElementById('clearBtn').onclick = () => {
         shapes.forEach(s => Composite.remove(world, s));
         shapes = [];
-    });
+        document.getElementById('currentCount').innerText = 0;
+    };
 
     let waterActive = false;
-    const waterBtn = document.getElementById('waterBtn');
-    waterBtn.addEventListener('mousedown', () => waterActive = true);
-    window.addEventListener('mouseup', () => waterActive = false);
-
-    // Клавиатура
     window.addEventListener('keydown', (e) => {
-        if (e.code === 'Space') createObj(window.innerWidth/2, 100, 30, document.getElementById('material').value);
-        if (e.code === 'KeyR') document.getElementById('clearBtn').click();
         if (e.code === 'KeyW') waterActive = true;
+        if (e.code === 'KeyR') document.getElementById('clearBtn').onclick();
+        if (e.code === 'Space') document.getElementById('spawnBtn').onclick();
     });
     window.addEventListener('keyup', (e) => { if (e.code === 'KeyW') waterActive = false; });
 
+    document.getElementById('waterBtn').onmousedown = () => waterActive = true;
+    window.onmouseup = () => waterActive = false;
+
     Events.on(engine, 'beforeUpdate', () => {
         if (waterActive) {
-            for(let i=0; i<3; i++) createObj(window.innerWidth/2 + (Math.random()*60-30), 40, 6, 'water');
+            for(let i=0; i<3; i++) createObj(window.innerWidth/2 + (Math.random()*40-20), 40, 5, 'water');
         }
     });
 
@@ -222,29 +185,14 @@
     Render.run(render);
     Runner.run(Runner.create(), engine);
 
-    // Перемещение меню
+    // Драг меню
     const ui = document.getElementById("ui");
     const header = document.getElementById("ui-header");
     let dragging = false, xOff = 0, yOff = 0;
-
-    header.onmousedown = (e) => {
-        dragging = true;
-        xOff = e.clientX - ui.offsetLeft;
-        yOff = e.clientY - ui.offsetTop;
-    };
-    window.onmousemove = (e) => {
-        if (dragging) {
-            ui.style.left = (e.clientX - xOff) + 'px';
-            ui.style.top = (e.clientY - yOff) + 'px';
-        }
-    };
+    header.onmousedown = (e) => { dragging = true; xOff = e.clientX - ui.offsetLeft; yOff = e.clientY - ui.offsetTop; };
+    window.onmousemove = (e) => { if (dragging) { ui.style.left = (e.clientX - xOff) + 'px'; ui.style.top = (e.clientY - yOff) + 'px'; } };
     window.onmouseup = () => dragging = false;
-
-    window.onresize = () => {
-        render.canvas.width = window.innerWidth;
-        render.canvas.height = window.innerHeight;
-        buildRoom();
-    };
+    window.onresize = () => { render.canvas.width = window.innerWidth; render.canvas.height = window.innerHeight; buildRoom(); };
 </script>
 </body>
 </html>
