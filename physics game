@@ -2,88 +2,78 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>Physics Lab Pro — PC Version</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Physics Sandbox — Pixel Control</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
     <style>
-        body { margin: 0; overflow: hidden; background: #0c0c0e; font-family: 'Inter', 'Segoe UI', sans-serif; }
+        body { margin: 0; padding: 0; overflow: hidden; background: #0a0a0c; font-family: 'Segoe UI', sans-serif; }
         
-        /* Главное меню */
         #ui {
-            position: absolute; left: 20px; top: 20px; width: 260px; 
-            background: rgba(23, 23, 28, 0.95); color: #e0e0e0; 
-            border-radius: 12px; z-index: 1000; border: 1px solid #3a3a42;
-            box-shadow: 0 15px 50px rgba(0,0,0,0.8); backdrop-filter: blur(15px);
+            position: absolute; left: 20px; top: 20px; width: 240px; 
+            background: rgba(20, 20, 25, 0.98); color: #fff; 
+            border-radius: 12px; z-index: 9999; border: 1px solid #444;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.8);
         }
 
         #ui-header {
-            padding: 14px; background: #1f1f27; cursor: move;
+            padding: 12px; background: #2c3e50; cursor: move; 
             text-align: center; font-weight: bold; border-radius: 12px 12px 0 0;
-            border-bottom: 1px solid #3a3a42; font-size: 13px; color: #00a2ff;
-            text-transform: uppercase; letter-spacing: 1.5px;
+            user-select: none; border-bottom: 1px solid #444;
         }
 
-        .ui-content { padding: 18px; display: flex; flex-direction: column; gap: 14px; }
+        .ui-content { padding: 15px; display: flex; flex-direction: column; gap: 10px; }
         
-        section { display: flex; flex-direction: column; gap: 6px; }
-        label { font-size: 10px; color: #777; text-transform: uppercase; font-weight: 700; }
+        .row { display: flex; flex-direction: column; gap: 4px; }
+        label { font-size: 10px; color: #888; text-transform: uppercase; font-weight: bold; }
+        .val-display { float: right; color: #00d4ff; }
 
         select, input, button { 
-            padding: 10px; border-radius: 6px; border: 1px solid #333; 
-            background: #121216; color: white; font-size: 14px; outline: none;
+            padding: 8px; border-radius: 6px; border: none; 
+            background: #1a1a1f; color: white; font-size: 13px; width: 100%;
         }
 
-        button { 
-            background: #007bff; border: none; font-weight: bold; cursor: pointer; 
-            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        button:hover { background: #005ecb; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,123,255,0.3); }
-        button:active { transform: translateY(0); }
-        
-        .btn-water { background: #00d4ff; color: #002233; }
-        .btn-water:hover { background: #33e0ff; }
-        .btn-clear { background: #eb3b5a; }
-        .btn-clear:hover { background: #ff4757; }
+        button { background: #27ae60; font-weight: bold; cursor: pointer; margin-top: 5px; }
+        button:hover { background: #2ecc71; }
+        .btn-water { background: #2980b9; }
+        .btn-clear { background: #c0392b; }
 
-        .hotkeys-panel {
-            margin-top: 10px; padding: 10px; background: rgba(0,0,0,0.3);
-            border-radius: 6px; font-size: 11px; color: #555; line-height: 1.6;
+        .counter { 
+            font-size: 11px; color: #555; text-align: center; 
+            padding: 5px; background: #000; border-radius: 4px;
         }
-        b { color: #aaa; }
     </style>
 </head>
 <body>
 
 <div id="ui">
-    <div id="ui-header">PHYSICS ENGINE v3.0</div>
+    <div id="ui-header">НАСТРОЙКИ МИРА</div>
     <div class="ui-content">
         
-        <section>
+        <div class="row">
             <label>Материал</label>
             <select id="material">
-                <option value="wood">Дерево (Баланс)</option>
-                <option value="metal">Металл (Тяжесть)</option>
-                <option value="rubber">Резина (Прыжки)</option>
-                <option value="acid">Кислота (Хаос) ☣️</option>
+                <option value="wood">Дерево</option>
+                <option value="metal">Металл</option>
+                <option value="rubber">Резина</option>
+                <option value="acid">Кислота ☣️</option>
             </select>
-        </section>
-
-        <section>
-            <label>Масштаб объекта</label>
-            <input type="range" id="size" min="15" max="150" value="40">
-        </section>
-        
-        <button onclick="spawn()">СОЗДАТЬ ОБЪЕКТ [Space]</button>
-        <button class="btn-water" id="waterBtn" onmousedown="startWater()" onmouseup="stopWater()" onmouseleave="stopWater()">
-            ПОТОК ВОДЫ [W]
-        </button>
-        <button class="btn-clear" onclick="clearAll()">ОЧИСТИТЬ ВСЁ [R]</button>
-
-        <div class="hotkeys-panel">
-            <b>Space:</b> Спавн предмета<br>
-            <b>W:</b> (удерживать) Поток воды<br>
-            <b>R:</b> Мгновенная очистка<br>
-            <b>Mouse Drag:</b> Хватать предметы
         </div>
+
+        <div class="row">
+            <label>Размер объекта <span id="sizeVal" class="val-display">30</span></label>
+            <input type="range" id="size" min="10" max="120" value="30" oninput="sizeVal.innerText=this.value">
+        </div>
+
+        <div class="row">
+            <label>Лимит пикселей <span id="limitVal" class="val-display">400</span></label>
+            <input type="range" id="limit" min="10" max="2000" value="400" oninput="limitVal.innerText=this.value">
+        </div>
+        
+        <button id="spawnBtn">СОЗДАТЬ ОБЪЕКТ</button>
+        <button class="btn-water" id="waterBtn">ПОТОК ВОДЫ (W)</button>
+        <button class="btn-clear" id="clearBtn">ОЧИСТИТЬ (R)</button>
+        
+        <div class="counter">Объектов на экране: <span id="currentCount">0</span></div>
     </div>
 </div>
 
@@ -96,30 +86,113 @@
     const render = Render.create({
         element: document.body,
         engine: engine,
-        options: { 
-            width: window.innerWidth, 
-            height: window.innerHeight, 
-            wireframes: false, 
-            background: 'transparent',
-            pixelRatio: window.devicePixelRatio
-        }
+        options: { width: window.innerWidth, height: window.innerHeight, wireframes: false, background: 'transparent' }
     });
 
-    // Отрисовка границ комнаты (стены)
+    // Стены
     let walls = [];
-    function buildBox() {
+    function buildRoom() {
         if (walls.length) Composite.remove(world, walls);
         const t = 100, w = window.innerWidth, h = window.innerHeight;
         walls = [
-            Bodies.rectangle(w/2, h+t/2, w, t, { isStatic: true, friction: 0.8, label: 'wall' }),
+            Bodies.rectangle(w/2, h + t/2, w, t, { isStatic: true, label: 'wall' }),
             Bodies.rectangle(w/2, -t/2, w, t, { isStatic: true, label: 'wall' }),
             Bodies.rectangle(-t/2, h/2, t, h, { isStatic: true, label: 'wall' }),
-            Bodies.rectangle(w+t/2, h/2, t, h, { isStatic: true, label: 'wall' })
+            Bodies.rectangle(w + t/2, h/2, t, h, { isStatic: true, label: 'wall' })
         ];
         Composite.add(world, walls);
     }
-    buildBox();
+    buildRoom();
 
-    // Мышь для управления предметами
-    const mouse = Mouse.create(render.canvas);
     const mouseConstraint = MouseConstraint.create(engine, {
+        mouse: Mouse.create(render.canvas),
+        constraint: { stiffness: 0.2, render: { visible: false } }
+    });
+    Composite.add(world, mouseConstraint);
+
+    let shapes = [];
+
+    function createObj(x, y, radius, type) {
+        let opt = { label: type };
+        let col = '#e67e22';
+        const limit = parseInt(document.getElementById('limit').value);
+
+        if (type === 'wood') { opt.density = 0.005; col = '#855e42'; }
+        else if (type === 'metal') { opt.density = 0.5; col = '#7f8c8d'; }
+        else if (type === 'rubber') { opt.restitution = 1.1; col = '#ff006e'; }
+        else if (type === 'acid') { col = '#2ecc71'; }
+        else if (type === 'water') { opt.friction = 0; opt.density = 0.002; col = '#3498db'; }
+
+        const b = Bodies.circle(x, y, radius, {
+            ...opt,
+            render: { fillStyle: col, strokeStyle: type==='water'?'transparent':'#fff', lineWidth: 1 }
+        });
+
+        Composite.add(world, b);
+        shapes.push(b);
+
+        // Контроль лимита "пикселей"
+        while (shapes.length > limit) {
+            const old = shapes.shift();
+            Composite.remove(world, old);
+        }
+        document.getElementById('currentCount').innerText = shapes.length;
+    }
+
+    // События
+    document.getElementById('spawnBtn').onclick = () => {
+        createObj(window.innerWidth/2, 100, parseInt(document.getElementById('size').value), document.getElementById('material').value);
+    };
+
+    document.getElementById('clearBtn').onclick = () => {
+        shapes.forEach(s => Composite.remove(world, s));
+        shapes = [];
+        document.getElementById('currentCount').innerText = 0;
+    };
+
+    let waterActive = false;
+    window.addEventListener('keydown', (e) => {
+        if (e.code === 'KeyW') waterActive = true;
+        if (e.code === 'KeyR') document.getElementById('clearBtn').onclick();
+        if (e.code === 'Space') document.getElementById('spawnBtn').onclick();
+    });
+    window.addEventListener('keyup', (e) => { if (e.code === 'KeyW') waterActive = false; });
+
+    document.getElementById('waterBtn').onmousedown = () => waterActive = true;
+    window.onmouseup = () => waterActive = false;
+
+    Events.on(engine, 'beforeUpdate', () => {
+        if (waterActive) {
+            for(let i=0; i<3; i++) createObj(window.innerWidth/2 + (Math.random()*40-20), 40, 5, 'water');
+        }
+    });
+
+    // Реакция кислоты
+    Events.on(engine, 'collisionStart', (e) => {
+        e.pairs.forEach(p => {
+            const { bodyA, bodyB } = p;
+            if (bodyA.label === 'acid' && !['wall', 'acid', 'water'].includes(bodyB.label)) {
+                Composite.remove(world, bodyB);
+                shapes = shapes.filter(s => s !== bodyB);
+            }
+            if (bodyB.label === 'acid' && !['wall', 'acid', 'water'].includes(bodyA.label)) {
+                Composite.remove(world, bodyA);
+                shapes = shapes.filter(s => s !== bodyA);
+            }
+        });
+    });
+
+    Render.run(render);
+    Runner.run(Runner.create(), engine);
+
+    // Драг меню
+    const ui = document.getElementById("ui");
+    const header = document.getElementById("ui-header");
+    let dragging = false, xOff = 0, yOff = 0;
+    header.onmousedown = (e) => { dragging = true; xOff = e.clientX - ui.offsetLeft; yOff = e.clientY - ui.offsetTop; };
+    window.onmousemove = (e) => { if (dragging) { ui.style.left = (e.clientX - xOff) + 'px'; ui.style.top = (e.clientY - yOff) + 'px'; } };
+    window.onmouseup = () => dragging = false;
+    window.onresize = () => { render.canvas.width = window.innerWidth; render.canvas.height = window.innerHeight; buildRoom(); };
+</script>
+</body>
+</html>
