@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Physics Lab Pro — PC Version</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
+    <style>
+        body { margin: 0; overflow: hidden; background: #0c0c0e; font-family: 'Inter', 'Segoe UI', sans-serif; }
+        
+        /* Главное меню */
+        #ui {
+            position: absolute; left: 20px; top: 20px; width: 260px; 
+            background: rgba(23, 23, 28, 0.95); color: #e0e0e0; 
+            border-radius: 12px; z-index: 1000; border: 1px solid #3a3a42;
+            box-shadow: 0 15px 50px rgba(0,0,0,0.8); backdrop-filter: blur(15px);
+        }
+
+        #ui-header {
+            padding: 14px; background: #1f1f27; cursor: move;
+            text-align: center; font-weight: bold; border-radius: 12px 12px 0 0;
+            border-bottom: 1px solid #3a3a42; font-size: 13px; color: #00a2ff;
+            text-transform: uppercase; letter-spacing: 1.5px;
+        }
+
+        .ui-content { padding: 18px; display: flex; flex-direction: column; gap: 14px; }
+        
+        section { display: flex; flex-direction: column; gap: 6px; }
+        label { font-size: 10px; color: #777; text-transform: uppercase; font-weight: 700; }
+
+        select, input, button { 
+            padding: 10px; border-radius: 6px; border: 1px solid #333; 
+            background: #121216; color: white; font-size: 14px; outline: none;
+        }
+
+        button { 
+            background: #007bff; border: none; font-weight: bold; cursor: pointer; 
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        button:hover { background: #005ecb; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,123,255,0.3); }
+        button:active { transform: translateY(0); }
+        
+        .btn-water { background: #00d4ff; color: #002233; }
+        .btn-water:hover { background: #33e0ff; }
+        .btn-clear { background: #eb3b5a; }
+        .btn-clear:hover { background: #ff4757; }
+
+        .hotkeys-panel {
+            margin-top: 10px; padding: 10px; background: rgba(0,0,0,0.3);
+            border-radius: 6px; font-size: 11px; color: #555; line-height: 1.6;
+        }
+        b { color: #aaa; }
+    </style>
+</head>
+<body>
+
+<div id="ui">
+    <div id="ui-header">PHYSICS ENGINE v3.0</div>
+    <div class="ui-content">
+        
+        <section>
+            <label>Материал</label>
+            <select id="material">
+                <option value="wood">Дерево (Баланс)</option>
+                <option value="metal">Металл (Тяжесть)</option>
+                <option value="rubber">Резина (Прыжки)</option>
+                <option value="acid">Кислота (Хаос) ☣️</option>
+            </select>
+        </section>
+
+        <section>
+            <label>Масштаб объекта</label>
+            <input type="range" id="size" min="15" max="150" value="40">
+        </section>
+        
+        <button onclick="spawn()">СОЗДАТЬ ОБЪЕКТ [Space]</button>
+        <button class="btn-water" id="waterBtn" onmousedown="startWater()" onmouseup="stopWater()" onmouseleave="stopWater()">
+            ПОТОК ВОДЫ [W]
+        </button>
+        <button class="btn-clear" onclick="clearAll()">ОЧИСТИТЬ ВСЁ [R]</button>
+
+        <div class="hotkeys-panel">
+            <b>Space:</b> Спавн предмета<br>
+            <b>W:</b> (удерживать) Поток воды<br>
+            <b>R:</b> Мгновенная очистка<br>
+            <b>Mouse Drag:</b> Хватать предметы
+        </div>
+    </div>
+</div>
+
+<script>
+    const { Engine, Render, Runner, Bodies, Composite, MouseConstraint, Mouse, Events } = Matter;
+
+    const engine = Engine.create();
+    const world = engine.world;
+
+    const render = Render.create({
+        element: document.body,
+        engine: engine,
+        options: { 
+            width: window.innerWidth, 
+            height: window.innerHeight, 
+            wireframes: false, 
+            background: 'transparent',
+            pixelRatio: window.devicePixelRatio
+        }
+    });
+
+    // Отрисовка границ комнаты (стены)
+    let walls = [];
+    function buildBox() {
+        if (walls.length) Composite.remove(world, walls);
+        const t = 100, w = window.innerWidth, h = window.innerHeight;
+        walls = [
+            Bodies.rectangle(w/2, h+t/2, w, t, { isStatic: true, friction: 0.8, label: 'wall' }),
+            Bodies.rectangle(w/2, -t/2, w, t, { isStatic: true, label: 'wall' }),
+            Bodies.rectangle(-t/2, h/2, t, h, { isStatic: true, label: 'wall' }),
+            Bodies.rectangle(w+t/2, h/2, t, h, { isStatic: true, label: 'wall' })
+        ];
+        Composite.add(world, walls);
+    }
+    buildBox();
+
+    // Мышь для управления предметами
+    const mouse = Mouse.create(render.canvas);
+    const mouseConstraint = MouseConstraint.create(engine, {
